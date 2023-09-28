@@ -85,3 +85,38 @@ Essa seção introduz o conceito de ORM em projetos Java, com alguns dos benefí
 * APIs para realizar operações CRUD básicas em instâncias de classes persistentes, mais proeminentemente `javax.persistence`.
 * Uma linguagem e APIs para especificar consultas que se referem a classes e propriedades de classes.
 * Como o mecanismo de persistência interage com instâncias transacionais para realizar verificação de sujeira, busca de associação e outras funções de otimização.
+
+
+## 2.0 Estrategias de mapeamento
+
+# Mão na Massa com Hibernate
+
+Neste capítulo, colocamos a mão na massa e começamos a usar o Hibernate para mapear nossas entidades e trabalhar com elas. Como meu foco é entender melhor o Hibernate para trabalhar com o Spring Boot, algumas coisas foram simplificadas, mas o comportamento continua o mesmo!
+
+## Mapeando Entidades
+
+- `@Entity`: Anotação para identificar que uma classe é uma entidade no banco de dados.
+- `@Id`: Mapeando uma coluna que é o identificador único da tabela.
+- `@GeneratedValue`: Geração do ID.
+
+## Buscando e Atualizando Dados Gerenciando a Nossa Própria Sessão
+
+- **EntityManager**:
+   O `EntityManager` é uma interface fundamental no Java Persistence API (JPA), que é uma especificação padrão de Java para mapeamento objeto-relacional e gerenciamento de persistência. O `EntityManager` é responsável por gerenciar o ciclo de vida das entidades, o que inclui operações de persistência básicas como criar, ler, atualizar e excluir (CRUD), bem como outras operações de gerenciamento de transações e persistência.
+
+```java
+    @Transactional
+    public void save(BaseModel entity) {
+        if (entity.getId() == null) {
+            entityManager.persist(entity);
+        } else {
+            entityManager.merge(entity);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Menssage> findAllMenssage() {
+        return entityManager.createQuery("select m from Menssage m", Menssage.class).getResultList();
+    }
+
+```
