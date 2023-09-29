@@ -86,25 +86,22 @@ Essa seção introduz o conceito de ORM em projetos Java, com alguns dos benefí
 * Uma linguagem e APIs para especificar consultas que se referem a classes e propriedades de classes.
 * Como o mecanismo de persistência interage com instâncias transacionais para realizar verificação de sujeira, busca de associação e outras funções de otimização.
 
-
 ## 2.0 Estrategias de mapeamento
-
-# Mão na Massa com Hibernate
 
 Neste capítulo, colocamos a mão na massa e começamos a usar o Hibernate para mapear nossas entidades e trabalhar com elas. Como meu foco é entender melhor o Hibernate para trabalhar com o Spring Boot, algumas coisas foram simplificadas, mas o comportamento continua o mesmo!
 
 ## Mapeando Entidades
 
-- `@Entity`: Anotação para identificar que uma classe é uma entidade no banco de dados.
-- `@Id`: Mapeando uma coluna que é o identificador único da tabela.
-- `@GeneratedValue`: Geração do ID.
+* `@Entity`: Anotação para identificar que uma classe é uma entidade no banco de dados.
+* `@Id`: Mapeando uma coluna que é o identificador único da tabela.
+* `@GeneratedValue`: Geração do ID.
 
 ## Buscando e Atualizando Dados Gerenciando a Nossa Própria Sessão
 
-- **EntityManager**:
+* **EntityManager**:
    O `EntityManager` é uma interface fundamental no Java Persistence API (JPA), que é uma especificação padrão de Java para mapeamento objeto-relacional e gerenciamento de persistência. O `EntityManager` é responsável por gerenciar o ciclo de vida das entidades, o que inclui operações de persistência básicas como criar, ler, atualizar e excluir (CRUD), bem como outras operações de gerenciamento de transações e persistência.
 
-```java
+``` java
     @Transactional
     public void save(BaseModel entity) {
         if (entity.getId() == null) {
@@ -119,4 +116,58 @@ Neste capítulo, colocamos a mão na massa e começamos a usar o Hibernate para 
         return entityManager.createQuery("select m from Menssage m", Menssage.class).getResultList();
     }
 
+```
+
+## 3 modelo de dominio e metadados
+
+### 3.1 Arquirtetura em camadas
+
+* Presentation layer - Camada responsavel por envia  os dados para a apresentação, isso é nossas camada de controladores do spring
+* Business layer - camada que cotêm as regras de negocio, pode ser visto como os services no spring-boot
+* Persistence layer - pode ser nossos daos/ repositores, camada de persistencia de dados
+* Database - no spring-boot normalmente esse cara é configuração do proprities
+* Helper and utility classes - class auxiliares como constantes, exceções e outros .
+
+![camadas](./imgs/layer.png)
+
+### 3.2 - Implementando o modelo de domínio
+
+Esta seção oferece uma visão mais detalhada sobre as classes e seu comportamento com o Hibernate, como associações:
+
+* Metadados baseados em anotações - como `org.hibernate.annotations.Cache`, ou GLOBAL ANNOTATION METADATA, `@Future`
+* Aplicando regras de validação Bean - `@NotNull` `@Size`
+* A persistência transparente é importante se você deseja executar e testar seus objetos de negócios de maneira independente e fácil.
+* Melhores práticas e requisitos para o modelo de programação POJO (Plain Old Java Object) e entidade JPA, e quais conceitos eles têm em comum com a antiga especificação JavaBean.
+* Mapeamentos mais complexos, possivelmente com uma combinação de anotações JDK ou arquivos de mapeamento JPA/Hibernate XML.
+
+```java
+public class Bid {
+   //associação
+    protected Item item;
+
+    public Item getItem() {
+        return item;
+    }
+    public void setItem(Item item) {
+        this.item = item;
+    }
+
+    public void addBid(Bid bid) {
+        if (bid == null) throw new NullPointerException("Can't add null Bid"); // defensive
+        if (bid.getItem() != null) throw new IllegalStateException("Bid is already assigned to an Item") // defensive;
+        getBids().add(bid);
+        bid.setItem(this);
+    }
+}
+
+public class Item {
+    protected Set<Bid> bids = new HashSet<Bid>();
+    public Set<Bid> getBids() {
+        return bids;
+    }
+    //associação
+    public void setBids(Set<Bid> bids) {
+        this.bids = bids;
+    }
+}
 ```
