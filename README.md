@@ -171,3 +171,45 @@ public class Item {
     }
 }
 ```
+
+## 4 - Mapeamento e Persistência das Classes
+
+Nos modelos conceituais existem duas formas de mapeamentos, podemos entender que no caso de duas pessoas morarem na mesma casa existe apenas 1 endereço vinculado, ou um mapeamento em que um endereço está estritamente ligado a um usuário havendo 1 endereço para cada usuário.
+
+* Você pode recuperar uma instância de tipo de entidade usando sua identidade persistente: por exemplo, uma instância de Usuário, Item ou Categoria. 
+* Uma instância de tipo de valor não tem propriedade de identificador persistente; pertence a uma instância de entidade. Sua vida útil está vinculada à instância de entidade proprietária.
+
+![4.1](./imgs/Figure%204.1.png)
+
+![4.2](imgs/4.2.png)
+O diagrama do seu modelo de domínio e implemente POJOs para todas as entidades e tipos de valor. Você terá que cuidar de três coisas:
+
+* Referências compartilhadas - Evite referências compartilhadas para instâncias de tipo de valor quando escrever suas classes POJO. Por exemplo, certifique-se de que apenas um Usuário pode referenciar um Endereço. Você pode tornar o Endereço imutável sem um método público `setUser()` e impor o relacionamento com um construtor público que tem um argumento de Usuário. Claro, você ainda precisa de um construtor sem argumentos, provavelmente protegido, como discutimos no capítulo anterior, para que o Hibernate também possa criar uma instância.
+
+* Dependências de ciclo de vida - Se um Usuário for excluído, sua dependência de Endereço também deve ser excluída. Os metadados de persistência incluirão as regras de cascata para todas essas dependências, para que o Hibernate (ou o banco de dados) possa cuidar da remoção do Endereço obsoleto. Você deve projetar seus procedimentos de aplicativo e interface de usuário para respeitar e esperar tais dependências - escreva seus POJOs de modelo de domínio de acordo.
+
+* Identidade - As classes de entidade precisam de uma propriedade de identificador em quase todos os casos. As classes de tipo de valor (e, claro, classes JDK como String e Integer) não têm uma propriedade de identificador, porque as instâncias são identificadas através da entidade proprietária.
+  
+![4.3](./imgs/4.3.png)
+
+A persistência complica esse cenário. Com a persistência objeto/relacional, uma instância persistente é uma representação em memória de uma determinada linha (ou linhas) de uma tabela de banco de dados (ou tabelas). Juntamente com a identidade e igualdade Java, definimos a identidade do banco de dados. Agora você tem três métodos para distinguir referências:
+
+* Objetos são idênticos se ocuparem o mesmo local de memória na JVM. Isso pode ser verificado com o operador `a == b`. Este conceito é conhecido como identidade de objeto.
+* Objetos são iguais se tiverem o mesmo estado, conforme definido pelo método `a.equals(Object b)`. Classes que não sobrescrevem explicitamente este método herdam a implementação definida por `java.lang.Object`, que compara a identidade do objeto com `==`. Este conceito é conhecido como igualdade de objeto.
+* Objetos armazenados em um banco de dados relacional são idênticos se compartilharem a mesma tabela e valor de chave primária. Este conceito, mapeado no espaço Java, é conhecido como identidade de banco de dados.
+
+O identificador de banco de dados de uma entidade é mapeado para alguma chave primária de tabela, então vamos primeiro obter algum conhecimento sobre chaves primárias sem nos preocuparmos com mapeamentos. Dê um passo atrás e pense sobre como você identifica entidades.
+
+Uma chave candidata é uma coluna ou conjunto de colunas que você poderia usar para identificar uma linha particular em uma tabela. Para se tornar a chave primária, uma chave candidata deve satisfazer os seguintes requisitos:
+
+* O valor de qualquer coluna de chave candidata nunca é nulo. Você não pode identificar algo com dados que são desconhecidos, e não há nulos no modelo relacional. Alguns produtos SQL permitem definir chaves primárias (compostas) com colunas anuláveis, então você deve ter cuidado.
+* O valor da(s) coluna(s) da chave candidata é um valor único para qualquer linha.
+* O valor da(s) coluna(s) da chave candidata nunca muda; é imutável.
+
+É possível mapear na própria anotação `@Entity(name = "message")` o nome da tabela.
+
+Para desativar a geração de instruções INSERT e UPDATE na inicialização, você precisa de anotações nativas do Hibernate:
+Ao habilitar inserções e atualizações dinâmicas, você diz ao Hibernate para produzir as strings SQL quando necessário, não antecipadamente. O UPDATE conterá apenas colunas com valores atualizados, e o INSERT conterá apenas colunas não nulas.
+`DynamicInsert` e `DynamicUpdate`
+
+Podemos marcar a entidade como imutável `Immutable`.

@@ -8,7 +8,7 @@ import java.util.UUID;
 @MappedSuperclass
 public abstract class BaseModel {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "ID_GENERATOR", strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
