@@ -176,7 +176,7 @@ public class Item {
 
 Nos modelos conceituais existem duas formas de mapeamentos, podemos entender que no caso de duas pessoas morarem na mesma casa existe apenas 1 endereço vinculado, ou um mapeamento em que um endereço está estritamente ligado a um usuário havendo 1 endereço para cada usuário.
 
-* Você pode recuperar uma instância de tipo de entidade usando sua identidade persistente: por exemplo, uma instância de Usuário, Item ou Categoria. 
+* Você pode recuperar uma instância de tipo de entidade usando sua identidade persistente: por exemplo, uma instância de Usuário, Item ou Categoria.
 * Uma instância de tipo de valor não tem propriedade de identificador persistente; pertence a uma instância de entidade. Sua vida útil está vinculada à instância de entidade proprietária.
 
 ![4.1](./imgs/Figure%204.1.png)
@@ -213,3 +213,21 @@ Ao habilitar inserções e atualizações dinâmicas, você diz ao Hibernate par
 `DynamicInsert` e `DynamicUpdate`
 
 Podemos marcar a entidade como imutável `Immutable`.
+
+## 5 - Mapeando Valores e Tipos
+
+### 5.1 - Quando você mapeia uma classe persistente, seja ela uma entidade ou um tipo incorporável (mais sobre isso mais tarde, na seção 5.2), todas as suas propriedades são consideradas persistentes por padrão. As regras padrão do JPA para propriedades de classes persistentes são as seguintes
+
+* O Hibernate carrega e armazena o valor da propriedade em uma coluna com um tipo SQL apropriado e o mesmo nome da propriedade.
+* Se você anotar a classe da propriedade como `@Embeddable`, ou mapear a propriedade em si como `@Embedded`, o Hibernate mapeia a propriedade como um componente incorporado da classe proprietária.
+* Caso contrário, se o tipo da propriedade for `java.io.Serializable`, seu valor é armazenado em sua forma serializada. Isso normalmente não é o que você deseja, e você deve sempre mapear classes Java em vez de armazenar um monte de bytes no banco de dados.
+* Caso contrário, o Hibernate lançará uma exceção na inicialização, reclamando que não entende o tipo da propriedade.
+
+### 5.1.1 - Sobrescrevendo Padrões Básicos de Propriedades
+
+* Você pode não querer que todas as propriedades de uma classe de entidade sejam persistentes. `@Transient`
+* Se você quer declarar como opcional um atributo no banco de dados, utilize `@Basic(optional = false)`. Normalmente, os desenvolvedores utilizam o `@Column` em vez do `@Basic` para definir a nulidade da coluna, como mostrado abaixo:
+
+  ```java
+  @Column(nullable = false)
+  BigDecimal initialPrice;```
