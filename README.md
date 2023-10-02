@@ -231,3 +231,151 @@ Podemos marcar a entidade como imutável `Immutable`.
   ```java
   @Column(nullable = false)
   BigDecimal initialPrice;```
+
+### 5.1.2
+
+Para que o @Access(AccessType.PROPERTY) funcione corretamente, você precisará ter métodos getter e setter definidos para a propriedade name na sua classe. Aqui está um exemplo de como a classe completa poderia parecer:
+
+```java
+@Entity
+public class Item {
+
+    @Access(AccessType.PROPERTY)
+    @Column(name = "ITEM_NAME")
+    protected String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    // ... restante do código ...
+}
+
+```
+
+Neste exemplo, mesmo que a anotação @Column esteja associada ao campo name, devido à anotação @Access(AccessType.PROPERTY), o Hibernate irá procurar e usar os métodos getName() e setName(String) para acessar e modificar o valor do campo name. Isso permite que você tenha lógica adicional nos métodos getter e setter, se necessário, que será executada sempre que o Hibernate acessar ou modificar o valor da propriedade name.
+
+### 5.1.3 - Usando propriedades derivadas
+
+A anotação @org.hibernate.annotations.Formula no Hibernate é usada para calcular um valor de uma propriedade com base em uma expressão SQL, como você mostrou no exemplo. Essa expressão é avaliada pelo banco de dados sempre que a entidade é recuperada, e o valor calculado é então atribuído à propriedade na entidade.
+
+Aqui estão alguns pontos importantes sobre como a anotação @Formula funciona, especialmente em relação a operações de INSERT e UPDATE:
+
+* Sem Persistência:A propriedade anotada com @Formula não é persistente, o que significa que ela não é armazenada no banco de dados como uma coluna regular.
+* Apenas para SELECT:A anotação @Formula é usada apenas durante operações de SELECT. Quando o Hibernate recupera a entidade do banco de dados, ele inclui a expressão SQL da fórmula na cláusula SELECT, e o banco de dados avalia essa expressão para calcular o valor da propriedade.
+* Valor Atualizado:O valor da propriedade derivada é atualizado apenas quando a entidade é recuperada do banco de dados. Se outros dados no banco de dados mudarem (por exemplo, se novas linhas forem adicionadas à tabela BID), o valor da propriedade derivada não será atualizado automaticamente. Você precisará recarregar a entidade para obter o valor atualizado.
+  
+```java
+@org.hibernate.annotations.Formula(
+"(select avg(b.AMOUNT) from BID b where b.ITEM_ID = ID)"
+)
+protected BigDecimal averageBidAmount;
+```
+
+### 5.1.4 - transformado conlunas em valores
+
+ A anotação @ColumnTransformer no Hibernate permite que você especifique expressões SQL para converter o valor da coluna do banco de dados ao ler e escrever. Isso é útil quando o formato ou a unidade de medida usada no banco de dados é diferente do formato ou unidade de medida usada na aplicação.
+
+No exemplo fornecido anteriormente, a expressão IMPERIALWEIGHT / 2.20462 é usada para converter o peso de libras para quilogramas ao ler do banco de dados, e a expressão ? * 2.20462 é usada para converter o peso de volta para libras ao escrever no banco de dados. O símbolo ? é um espaço reservado para o valor que está sendo escrito no banco de dados.
+
+```java
+@Entity
+@Table(name = "ITEM")
+public class Item {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @ColumnTransformer(
+        read = "IMPERIALWEIGHT / 2.20462",
+        write = "? * 2.20462"
+    )
+    @Column(name = "IMPERIALWEIGHT")
+    private double metricWeight;
+
+    // ... restante do código ...
+}
+
+```
+
+### 5.1.5 - Valores Gerados e Padrão de Propriedades
+
+A anotação @org.hibernate.annotations.Generated no Hibernate é utilizada para marcar propriedades cujos valores são gerados pelo banco de dados, seja durante a inserção ou atualização de registros. As configurações de GenerationTime, como ALWAYS e INSERT, determinam quando o Hibernate deve buscar os valores gerados - após cada operação de inserção/atualização ou apenas após inserções. Para valores padrão, a anotação @ColumnDefault pode ser utilizada para definir um valor padrão durante a criação do esquema SQL.
+
+```java
+@Entity
+@Table(name = "ITEM")
+public class Item {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @ColumnDefault("100")
+    @Column(name = "PRICE")
+    private BigDecimal price;
+
+    @Generated(GenerationTime.INSERT)
+    @Column(name = "CREATION_TIMESTAMP", insertable = false, updatable = false)
+    private Timestamp creationTimestamp;
+
+    // ... restante do código ...
+}
+```
+
+### 5.1.6 - Propriedades temporais
+
+A especificação JPA exige a anotação de propriedades temporais com @Temporal para definir a precisão do tipo de dados SQL da coluna mapeada. O Hibernate, além de suportar tipos temporais Java padrão, também aceita classes do pacote java.time do JDK 8. Uma funcionalidade útil é a anotação @CreationTimestamp, que instrui o Hibernate a atribuir o momento atual como valor da propriedade ao inserir uma nova entidade no banco de dados, facilitando o rastreamento do momento de criação de registros. Similarmente, a anotação @UpdateTimestamp pode ser utilizada para rastrear a última modificação. Além disso, o Hibernate oferece flexibilidade para criar e configurar geradores de valores personalizados, permitindo a automação de atribuições de valores tanto no lado da aplicação quanto no banco de dados.
+com a introdução do Java 8, a nova API de Data e Hora (java.time) foi introduzida, e frameworks modernos como Spring Boot e Hibernate agora têm suporte nativo para esses tipos. Portanto, você não precisa mais usar a anotação @Temporal quando está mapeando campos de data e hora usando esses novos tipos. Por exemplo, você pode ter um campo LocalDate, LocalDateTime, Instant, etc., em sua entidade, e o Hibernate será capaz de mapear isso corretamente para o tipo de coluna de data e hora correspondente no banco de dados sem a necessidade de anotações adicionais.
+
+```java
+@Entity
+@Table(name = "ITEM")
+public class Item {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @CreationTimestamp
+    @Column(name = "CREATION_TIMESTAMP", updatable = false)
+    private Date creationTimestamp;
+
+    // ... restante do código ...
+}
+
+```
+
+### 5.1.7 - Mapeando enun
+
+A anotação @Enumerated no Hibernate é utilizada para mapear tipos enumerados em Java, permitindo que sejam armazenados no banco de dados de forma mais legível ou eficiente. Por padrão, sem a anotação @Enumerated, o Hibernate armazena a posição ordinal do valor enum, o que pode ser problemático se o enum for alterado no futuro. Para evitar isso, a opção EnumType.STRING pode ser usada com a anotação @Enumerated, instruindo o Hibernate a armazenar o rótulo do valor enum, tornando o mapeamento mais robusto a mudanças e mais legível no banco de dados. Este mapeamento é crucial para garantir que os dados sejam armazenados de forma consistente e compreensível, facilitando a manutenção e compreensão do modelo de domínio.
+
+```java
+@Entity
+@Table(name = "AUCTION")
+public class Auction {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "AUCTION_TYPE")
+    private AuctionType auctionType;
+
+    // ... restante do código ...
+}
+
+public enum AuctionType {
+    HIGHEST_BID,
+    LOWEST_BID,
+    FIXED_PRICE
+}
+
+```
