@@ -379,3 +379,109 @@ public enum AuctionType {
 }
 
 ```
+
+### 5.2 - Mapeando entre entidades
+
+a modelagem de objetos, onde classes como "User" e "Address" estão associadas através de uma relação de composição. Nessa relação, o ciclo de vida de "Address" é totalmente dependente do ciclo de vida de "User". Esta associação, sendo uma forma forte de agregação, sugere que "Address" pode ser um tipo de valor candidato no mapeamento objeto/relacional, indicando uma estratégia para representar essas classes e relações em um banco de dados.
+
+![Alt text](./imgs/relacionamentos.png)
+
+### 5.2.1 - esquemas no banco de dados
+
+o mapeamento de uma relação de composição entre as classes "User" e "Address" em um esquema SQL, com "Address" sendo tratado como um tipo de valor, similar a String ou BigDecimal, e "User" como uma entidade. No esquema, todos os detalhes de um usuário e seus endereços são armazenados em uma única linha na tabela USERS. Se outra entidade, como "Shipment", referencia um "Address", a tabela SHIPMENT também incluirá colunas para armazenar um "Address". A chave primária de "Address" é a identificação da entidade proprietária no banco de dados, refletindo que "Address" não tem identidade própria e seu ciclo de vida é dependente da entidade proprietária. Isso facilita o suporte do Hibernate a modelos de domínio mais refinados, permitindo mais classes do que tabelas no mapeamento, sem a necessidade de comandos SQL especiais para gerenciar o ciclo de vida dos componentes embutidos.
+
+![tabelas embeddeb ](./imgs/tabelasembeddeb.png)
+
+```java
+// Classe de entidade User
+@Entity
+@Table(name = "USERS")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "street", column = @Column(name = "home_street")),
+        @AttributeOverride(name = "city", column = @Column(name = "home_city")),
+        @AttributeOverride(name = "state", column = @Column(name = "home_state")),
+        @AttributeOverride(name = "zip", column = @Column(name = "home_zip"))
+    })
+    private Address homeAddress;
+
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "street", column = @Column(name = "billing_street")),
+        @AttributeOverride(name = "city", column = @Column(name = "billing_city")),
+        @AttributeOverride(name = "state", column = @Column(name = "billing_state")),
+        @AttributeOverride(name = "zip", column = @Column(name = "billing_zip"))
+    })
+    private Address billingAddress;
+
+    // Getters e Setters...
+}
+
+// Classe incorporável Address
+@Embeddable
+public class Address {
+    private String street;
+    private String city;
+    private String state;
+    private String zip;
+
+    // Getters e Setters...
+}
+
+```
+
+### 5.2.2 - marcando class como embutida
+
+No texto discutido, a composição em Java é explorada no contexto do Hibernate, uma ferramenta de mapeamento objeto-relacional. Embora Java não tenha um conceito inerente de composição, o Hibernate oferece uma maneira de representar relações de composição através das anotações `@Embeddable` e `@Embedded`. Uma classe marcada como `@Embeddable` indica que ela pode ser incorporada em uma entidade, enquanto `@Embedded` é usado na entidade proprietária para indicar a incorporação.
+
+Neste contexto, a classe `Address` é tratada como um tipo de valor, sem identidade única, e é incorporada na classe `User`. O mapeamento é configurado de tal forma que as propriedades de `Address` são mapeadas diretamente para colunas específicas na tabela `USERS` do banco de dados.
+
+O texto também toca na estratégia de acesso - se é através de campos ou métodos getter/setter - que é herdada da entidade proprietária para o componente incorporado. Uma ressalva mencionada é a falta de uma representação elegante para referências nulas em um `Address`, o que pode levar a comportamentos contraintuitivos quando se trata de colunas nulas no banco de dados.
+
+Por fim, é sugerido que os métodos `equals()` e `hashCode()` devem ser sobrescritos em `Address` para comparação de valor, o que é crucial ao lidar com coleções que dependem de comparações de igualdade, como `HashSet`.
+
+```java
+// Classe incorporável Address
+@Embeddable
+public class Address {
+    @Column(name = "STREET", nullable = false)
+    private String street;
+    @Column(name = "CITY", nullable = false)
+    private String city;
+    @Column(name = "ZIPCODE", nullable = false)
+    private String zipcode;
+
+    // Construtores, getters e setters...
+}
+
+// Classe de entidade User
+@Entity
+@Table(name = "USERS")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Embedded
+    private Address homeAddress;
+
+    // Construtores, getters e setters...
+}
+
+```
+
+#### Resumo
+
+* Discutimos o mapeamento de propriedades básicas e incorporadas de uma classe de entidade.
+* Você viu como sobrescrever mapeamentos básicos, como alterar o nome de uma coluna mapeada, e como usar propriedades derivadas, padrão, temporais e de enumeração.
+* Cobrimos classes de componentes incorporáveis e como você pode criar modelos de domínio refinados.
+* Você pode mapear as propriedades de várias classes Java em uma composição, como `Address` e `City`, para uma tabela de entidade.
+* Examinamos como o Hibernate seleciona conversores de tipo Java para SQL, e quais tipos estão embutidos no Hibernate.
+* Você escreveu um conversor de tipo personalizado para a classe `MonetaryAmount` com as interfaces de extensão JPA padrão, e então um adaptador de baixo nível com a API nativa Hibernate `UserType`.
