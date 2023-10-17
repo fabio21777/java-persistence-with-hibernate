@@ -189,7 +189,7 @@ O diagrama do seu modelo de domínio e implemente POJOs para todas as entidades 
 * Dependências de ciclo de vida - Se um Usuário for excluído, sua dependência de Endereço também deve ser excluída. Os metadados de persistência incluirão as regras de cascata para todas essas dependências, para que o Hibernate (ou o banco de dados) possa cuidar da remoção do Endereço obsoleto. Você deve projetar seus procedimentos de aplicativo e interface de usuário para respeitar e esperar tais dependências - escreva seus POJOs de modelo de domínio de acordo.
 
 * Identidade - As classes de entidade precisam de uma propriedade de identificador em quase todos os casos. As classes de tipo de valor (e, claro, classes JDK como String e Integer) não têm uma propriedade de identificador, porque as instâncias são identificadas através da entidade proprietária.
-  
+
 ![4.3](./imgs/4.3.png)
 
 A persistência complica esse cenário. Com a persistência objeto/relacional, uma instância persistente é uma representação em memória de uma determinada linha (ou linhas) de uma tabela de banco de dados (ou tabelas). Juntamente com a identidade e igualdade Java, definimos a identidade do banco de dados. Agora você tem três métodos para distinguir referências:
@@ -268,7 +268,7 @@ Aqui estão alguns pontos importantes sobre como a anotação @Formula funciona,
 * Sem Persistência:A propriedade anotada com @Formula não é persistente, o que significa que ela não é armazenada no banco de dados como uma coluna regular.
 * Apenas para SELECT:A anotação @Formula é usada apenas durante operações de SELECT. Quando o Hibernate recupera a entidade do banco de dados, ele inclui a expressão SQL da fórmula na cláusula SELECT, e o banco de dados avalia essa expressão para calcular o valor da propriedade.
 * Valor Atualizado:O valor da propriedade derivada é atualizado apenas quando a entidade é recuperada do banco de dados. Se outros dados no banco de dados mudarem (por exemplo, se novas linhas forem adicionadas à tabela BID), o valor da propriedade derivada não será atualizado automaticamente. Você precisará recarregar a entidade para obter o valor atualizado.
-  
+
 ```java
 @org.hibernate.annotations.Formula(
 "(select avg(b.AMOUNT) from BID b where b.ITEM_ID = ID)"
@@ -485,3 +485,40 @@ public class User {
 * Você pode mapear as propriedades de várias classes Java em uma composição, como `Address` e `City`, para uma tabela de entidade.
 * Examinamos como o Hibernate seleciona conversores de tipo Java para SQL, e quais tipos estão embutidos no Hibernate.
 * Você escreveu um conversor de tipo personalizado para a classe `MonetaryAmount` com as interfaces de extensão JPA padrão, e então um adaptador de baixo nível com a API nativa Hibernate `UserType`.
+
+
+### 5.8  - conversão de valores
+
+A anotação "converte" pode ser muito útil caso seja necessário recuperar valores do banco e mapeá-los para entidades, salvando-os como foram recuperados no banco ou em outros tipos. Segue um exemplo de como isso pode ser feito:
+
+```java
+
+@Converter(autoApply = true)
+public class MonetaryAmountConverter implements AttributeConverter<MonetaryAmount, String> {
+    @Override
+    public String convertToDatabaseColumn(MonetaryAmount monetaryAmount) {
+        return monetaryAmount.toString();
+    }
+    @Override
+    public MonetaryAmount convertToEntityAttribute(String s) {
+    return MonetaryAmount.fromString(s);
+    }
+}
+
+
+
+
+@Entity
+public class Item {
+    @NotNull
+    @Convert(
+    converter = MonetaryAmountConverter.class,
+    disableConversion = false)
+    @Column(name = "PRICE", length = 63)
+    protected MonetaryAmount buyNowPrice;
+    // ...
+}
+
+```
+## 5 - Mapeando herenças
+
