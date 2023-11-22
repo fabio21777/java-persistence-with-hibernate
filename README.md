@@ -230,7 +230,8 @@ Podemos marcar a entidade como imutável `Immutable`.
 
   ```java
   @Column(nullable = false)
-  BigDecimal initialPrice;```
+  BigDecimal initialPrice;
+    ```
 
 ### 5.1.2
 
@@ -251,10 +252,7 @@ public class Item {
     public void setName(String name) {
         this.name = name;
     }
-
-    // ... restante do código ...
 }
-
 ```
 
 Neste exemplo, mesmo que a anotação @Column esteja associada ao campo name, devido à anotação @Access(AccessType.PROPERTY), o Hibernate irá procurar e usar os métodos getName() e setName(String) para acessar e modificar o valor do campo name. Isso permite que você tenha lógica adicional nos métodos getter e setter, se necessário, que será executada sempre que o Hibernate acessar ou modificar o valor da propriedade name.
@@ -520,5 +518,97 @@ public class Item {
 }
 
 ```
-## 5 - Mapeando herenças
 
+## 6 - Mapeando herenças
+
+## 6.1 - Tabela por Classe Concreta com Polimorfismo Implícito
+Este exemplo se refere a uma estratégia de mapeamento de herança em bancos de dados onde cada classe concreta é mapeada para uma tabela independente. Nesse caso, cada tabela contém todas as colunas correspondentes às propriedades da classe, incluindo as propriedades herdadas da classe pai (se houver).
+![6.1-Mapping all concrete classes to an independent table](./imgs/6.1.png)
+
+## 6.2 - tabela concreta por união
+
+Com a estratégia TABLE_PER_CLASS, cada classe concreta tem sua própria tabela, e não há tabela para a classe base abstrata. Cada tabela de classe concreta conterá suas próprias colunas, além das colunas herdadas da classe base. Por exemplo:
+
+Não há tabela para BillingDetails, pois é uma classe abstrata.
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+public abstract class BillingDetails {
+    @Id
+    @GeneratedValue(generator = Constants.ID_GENERATOR)
+    protected Long id;
+    @NotNull
+    protected String owner;
+// ...
+
+@Entity
+public class CreditCard extends BillingDetails {
+    @NotNull
+    protected String cardNumber;
+    @NotNull
+    protected String expMonth;
+    @NotNull
+    protected String expYear;
+    // ...
+}
+}
+```
+
+```sql
+CREATE TABLE CreditCard (
+    id BIGINT PRIMARY KEY,
+    owner VARCHAR(255),
+    cardNumber VARCHAR(255),
+    expMonth VARCHAR(255),
+    expYear VARCHAR(255)
+    -- Outros campos específicos de CreditCard
+);
+
+```
+
+## 6.3 - tabela por hierarquia
+
+Com essa estrategia a SINGLE_TABLE, existe apenas uma tabela para toda a hierarquia de classes. A tabela contém todas as colunas correspondentes às propriedades de todas as classes, incluindo as propriedades herdadas da classe pai (se houver), as classes concretas são diferenciadas por uma coluna discriminadora. Por exemplo:
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "BD_TYPE")
+public abstract class BillingDetails {
+    @Id
+    @GeneratedValue(generator = Constants.ID_GENERATOR)
+    protected Long id;
+    @NotNull// isso é ignorado
+    @Column(nullable = false)
+    protected String owner;
+// ...
+}
+
+@Entity
+@DiscriminatorValue("CC")
+public class CreditCard extends BillingDetails {
+    @NotNull // isso é ignorado
+    protected String cardNumber;
+    @NotNull// isso é ignorado
+    protected String expMonth;
+    @NotNull// isso é ignorado
+    protected String expYear;
+// ...
+}
+```
+```sql
+CREATE TABLE BillingDetails (
+    id BIGINT PRIMARY KEY, -- gerado automaticamente
+    owner VARCHAR(255) NOT NULL,
+    BD_TYPE VARCHAR(255), -- coluna discriminadora
+    cardNumber VARCHAR(255), -- campos específicos de CreditCard
+    expMonth VARCHAR(255),
+    expYear VARCHAR(255)
+);
+
+```
+
+![!\[Alt text\](image.png)](imgs/6.2.png)
+
+
+## 6.4 - Tabela por Subclasse por joins
