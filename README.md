@@ -612,3 +612,36 @@ CREATE TABLE BillingDetails (
 
 
 ## 6.4 - Tabela por Subclasse por joins
+
+Essa abordagem é semelhante à estratégia TABLE_PER_CLASS, pos cada classe tem sua propria tabela, mas as tabelas de subclasses não contêm colunas para as propriedades herdadas da classe pai. Em vez disso, as tabelas de subclasses contêm apenas colunas para as propriedades específicas da classe. As colunas herdadas são mapeadas por meio de uma associação de chave estrangeira/ chave primária para a tabela da classe pai. Por exemplo:
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class BillingDetails {
+    @Id
+    @GeneratedValue(generator = Constants.ID_GENERATOR)
+    protected Long id;
+    @NotNull
+    protected String owner;
+}
+
+@Entity
+public class BankAccount extends BillingDetails {
+    @NotNull
+    protected String account;
+    @NotNull
+    protected String bankname;
+    @NotNull
+    protected String swift;
+// ...
+}
+
+```
+
+![!\[Alt text\](image.png)](imgs/6.3.png)
+
+
+## 6.8 - Polymorphic associations
+
+
